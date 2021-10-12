@@ -1,0 +1,39 @@
+version: '3.9'
+
+services:
+  db:
+    image: mysql:5.7
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=node_app
+    volumes:
+      - ./mysql/:/docker-entrypoint-initdb.d
+    restart: always
+    networks:
+      - node_db
+
+  node:
+    build: ./node/
+    entrypoint: dockerize -wait tcp://db:3306 -timeout 40s node index.js
+    restart: always
+    networks:
+      - node_db
+      - node_nginx
+    depends_on:
+      - db
+
+  nginx:
+    build: ./nginx
+    restart: always
+    ports:
+      - 8080:80
+    networks:
+      - node_nginx
+    depends_on:
+      - node
+
+networks:
+  node_db:
+    driver: bridge
+  node_nginx:
+    driver: bridge
